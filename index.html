@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Irreplaceable. · 日记</title>
+<style>
+  :root {
+    --ink: #1a2233;
+    --paper: #f7f5f0;
+    --accent: #2b3a67;
+    --accent-soft: #3a4a7a;
+    --line: #d8d3c5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+  }
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: #fffdf8;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(26, 34, 51, 0.12);
+    padding: 40px 32px;
+    border: 1px solid var(--line);
+    text-align: center;
+  }
+  .lock {
+    font-size: 40px;
+    margin-bottom: 12px;
+  }
+  .card h1 {
+    font-size: 20px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .card .sub {
+    font-size: 12px;
+    color: #8a8578;
+    letter-spacing: 1px;
+    margin-bottom: 28px;
+  }
+  input {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 15px;
+    text-align: center;
+    outline: none;
+    background: #fffdf8;
+    color: var(--ink);
+    font-family: inherit;
+    letter-spacing: 4px;
+  }
+  input:focus { border-color: var(--accent-soft); }
+  button {
+    width: 100%;
+    margin-top: 14px;
+    padding: 13px 0;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 15px;
+    cursor: pointer;
+    transition: opacity .2s;
+    font-family: inherit;
+  }
+  button:hover { opacity: .85; }
+  .err {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #b05353;
+    min-height: 18px;
+  }
+  /* 日记主体（默认隐藏，解锁后显示） */
+  .diary { display: none; }
+  body.unlocked { justify-content: flex-start; }
+  body.unlocked .lock-screen { display: none; }
+  body.unlocked .diary { display: block; width: 100%; max-width: 560px; }
+  .book {
+    background: #fffdf8;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(26, 34, 51, 0.12);
+    padding: 36px 32px;
+    border: 1px solid var(--line);
+  }
+  .head { text-align: center; border-bottom: 1px solid var(--line); padding-bottom: 20px; margin-bottom: 24px; }
+  .head h1 { font-size: 22px; letter-spacing: 2px; color: var(--accent); font-weight: 600; }
+  .head .sub { margin-top: 6px; font-size: 12px; color: #8a8578; letter-spacing: 1px; }
+  .date-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  .date-row .today { font-size: 14px; color: var(--accent); font-weight: 500; }
+  .date-row .mood { font-size: 20px; }
+  textarea {
+    width: 100%; min-height: 200px;
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 16px; font-size: 15px; line-height: 1.8;
+    resize: vertical; background: #fffdf8; color: var(--ink);
+    outline: none; font-family: inherit;
+  }
+  textarea:focus { border-color: var(--accent-soft); }
+  .btn-row { display: flex; gap: 10px; margin-top: 14px; }
+  .btn-row button { flex: 1; padding: 12px 0; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
+  .save { background: var(--accent); color: #fff; }
+  .history { background: transparent; border: 1px solid var(--line); color: var(--accent); }
+  .entries { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 20px; }
+  .entries h2 { font-size: 13px; color: #8a8578; letter-spacing: 1px; margin-bottom: 12px; font-weight: 500; }
+  .entry { background: #faf8f2; border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; border-left: 3px solid var(--accent); }
+  .entry .e-date { font-size: 12px; color: #8a8578; margin-bottom: 6px; }
+  .entry .e-text { font-size: 14px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; color: var(--ink); }
+  .empty { text-align: center; color: #b5aea0; font-size: 13px; padding: 20px 0; }
+  .toast {
+    position: fixed; bottom: 32px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--accent); color: #fff;
+    padding: 10px 22px; border-radius: 20px; font-size: 13px;
+    opacity: 0; transition: all .3s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+  <!-- 锁屏 -->
+  <div class="card lock-screen">
+    <div class="lock">🔒</div>
+    <h1>Irreplaceable.</h1>
+    <div class="sub">这本日记，只对一个人打开</div>
+    <input type="password" id="pin" placeholder="请输入口令" autocomplete="off">
+    <button onclick="unlock()">打开日记</button>
+    <div class="err" id="err"></div>
+  </div>
+
+  <!-- 日记主体 -->
+  <div class="diary">
+    <div class="book">
+      <div class="head">
+        <h1>Irreplaceable.</h1>
+        <div class="sub">一本没有命题的日记</div>
+      </div>
+      <div class="date-row">
+        <span class="today" id="today"></span>
+        <span class="mood">✎</span>
+      </div>
+      <textarea id="editor" placeholder="今天，想说点什么就写点什么……"></textarea>
+      <div class="btn-row">
+        <button class="save" onclick="saveEntry()">写下这一页</button>
+        <button class="history" onclick="toggleHistory()">过往</button>
+      </div>
+      <div class="entries" id="entriesWrap" style="display:none">
+        <h2>· 过往的页 ·</h2>
+        <div id="entries"></div>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+<script>
+  // ======== 口令在这里改 ========
+  const SECRET = 'irreplaceable';
+  const KEY = 'irreplaceable_diary';
+  // ==============================
+
+  // 口令锁
+  function unlock() {
+    const pin = document.getElementById('pin').value.trim();
+    if (pin === SECRET) {
+      document.body.classList.add('unlocked');
+      document.getElementById('today').textContent = todayStr();
+      render();
+    } else {
+      document.getElementById('err').textContent = '口令不对哦，再想想';
+      document.getElementById('pin').value = '';
+      document.getElementById('pin').focus();
+    }
+  }
+  document.getElementById('pin').addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); });
+
+  function todayStr() {
+    const d = new Date();
+    const w = ['日','一','二','三','四','五','六'];
+    return d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日 · 星期' + w[d.getDay()];
+  }
+  function load() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { return []; } }
+
+  function saveEntry() {
+    const text = document.getElementById('editor').value.trim();
+    if (!text) { showToast('这一页还是空的'); return; }
+    const all = load();
+    all.unshift({ date: todayStr(), text: text });
+    localStorage.setItem(KEY, JSON.stringify(all));
+    document.getElementById('editor').value = '';
+    showToast('写下了 ✎');
+    render();
+  }
+  function render() {
+    const all = load();
+    const wrap = document.getElementById('entries');
+    if (!all.length) { wrap.innerHTML = '<div class="empty">还没有写过一页</div>'; return; }
+    wrap.innerHTML = all.map(e =>
+      '<div class="entry"><div class="e-date">' + e.date + '</div><div class="e-text">' +
+      e.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') +
+      '</div></div>'
+    ).join('');
+  }
+  function toggleHistory() {
+    const w = document.getElementById('entriesWrap');
+    w.style.display = w.style.display === 'none' ? 'block' : 'none';
+    if (w.style.display === 'block') render();
+  }
+  let t;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(t);
+    t = setTimeout(() => el.classList.remove('show'), 1600);
+  }
+</script>
+</body>
+</html>
