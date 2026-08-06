@@ -174,7 +174,7 @@
   // 数据存到 AssamYst.github.io 仓库的 diary.json
   // 本地为主，云端为备份；写入时同步到云端
   const CLOUD_URL = 'https://api.github.com/repos/AssamYst/AssamYst.github.io/contents/diary.json';
-  const CLOUD_HEADERS = { 'Accept': 'application/vnd.github+json' };
+  const CLOUD_HEADERS = {};
 
   async function cloudPull() {
     try {
