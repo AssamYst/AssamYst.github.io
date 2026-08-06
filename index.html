@@ -181,7 +181,10 @@
       const res = await fetch(CLOUD_URL, { headers: CLOUD_HEADERS });
       if (res.status === 404) return null;
       const data = await res.json();
-      const text = atob(data.content.replace(/\n/g, ''));
+      // 正确解码 UTF-8（atob 对中文会乱码，用 TextDecoder）
+      const b64 = data.content.replace(/\n/g, '');
+      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const text = new TextDecoder().decode(bytes);
       return JSON.parse(text);
     } catch(e) { return null; }
   }
