@@ -170,13 +170,60 @@
   const KEY = 'irreplaceable_diary';
   // ==============================
 
+  // ======== 云端同步 (GitHub) ========
+  // 数据存到 AssamYst.github.io 仓库的 diary.json
+  // 本地为主，云端为备份；写入时同步到云端
+  const CLOUD_URL = 'https://api.github.com/repos/AssamYst/AssamYst.github.io/contents/diary.json';
+  const CLOUD_HEADERS = { 'Accept': 'application/vnd.github+json' };
+
+  async function cloudPull() {
+    try {
+      const res = await fetch(CLOUD_URL, { headers: CLOUD_HEADERS });
+      if (res.status === 404) return null;
+      const data = await res.json();
+      const text = atob(data.content.replace(/\n/g, ''));
+      return JSON.parse(text);
+    } catch(e) { return null; }
+  }
+
+  // 合并云端与本地（按日期去重）
+  function merge(all, cloud) {
+    const map = new Map();
+    (cloud || []).forEach(e => map.set(e.date + '|' + e.text, e));
+    (all || []).forEach(e => map.set(e.date + '|' + e.text, e));
+    return Array.from(map.values());
+  }
+
+  async function cloudPush(all) {
+    try {
+      // 先查当前文件sha（GitHub 更新文件需要）
+      const getRes = await fetch(CLOUD_URL, { headers: CLOUD_HEADERS });
+      let sha = null;
+      if (getRes.status === 200) {
+        const d = await getRes.json();
+        sha = d.sha;
+      }
+      const body = JSON.stringify({
+        message: 'diary sync ' + new Date().toISOString(),
+        content: btoa(unescape(encodeURIComponent(JSON.stringify(all, null, 2)))),
+        sha: sha
+      });
+      const putRes = await fetch(CLOUD_URL, {
+        method: 'PUT',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, CLOUD_HEADERS),
+        body: body
+      });
+      return putRes.status === 200 || putRes.status === 201;
+    } catch(e) { return false; }
+  }
+
   // 口令锁
-  function unlock() {
+  async function unlock() {
     const pin = document.getElementById('pin').value.trim();
     if (pin === SECRET) {
       document.body.classList.add('unlocked');
       document.getElementById('today').textContent = todayStr();
-      render();
+      await render();
     } else {
       document.getElementById('err').textContent = '口令不对哦，再想想';
       document.getElementById('pin').value = '';
@@ -190,17 +237,29 @@
     const w = ['日','一','二','三','四','五','六'];
     return d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日 · 星期' + w[d.getDay()];
   }
-  function load() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { return []; } }
+  function loadLocal() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { return []; } }
+  function saveLocal(all) { localStorage.setItem(KEY, JSON.stringify(all)); }
+  // 打开时：本地 + 云端合并
+  async function load() {
+    const local = loadLocal();
+    const cloud = await cloudPull();
+    const all = merge(local, cloud);
+    saveLocal(all); // 合并结果存回本地
+    return all;
+  }
 
-  function saveEntry() {
+  async function saveEntry() {
     const text = document.getElementById('editor').value.trim();
     if (!text) { showToast('这一页还是空的'); return; }
-    const all = load();
+    const all = await load();
     all.unshift({ date: todayStr(), text: text });
-    localStorage.setItem(KEY, JSON.stringify(all));
+    saveLocal(all);
     document.getElementById('editor').value = '';
     showToast('写下了 ✎');
     render();
+    // 云端同步
+    const ok = await cloudPush(all);
+    if (!ok) { showToast('云端同步失败，已存在本地'); } else { showToast('已同步到云端 ✎'); }
   }
   function render() {
     const all = load();
