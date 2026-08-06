@@ -264,8 +264,8 @@
     const ok = await cloudPush(all);
     if (!ok) { showToast('云端同步失败，已存在本地'); } else { showToast('已同步到云端 ✎'); }
   }
-  function render() {
-    const all = load();
+  async function render() {
+    const all = await load();
     const wrap = document.getElementById('entries');
     if (!all.length) { wrap.innerHTML = '<div class="empty">还没有写过一页</div>'; return; }
     wrap.innerHTML = all.map(e =>
