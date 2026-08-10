@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>念 · Xinchao</title>
+<style>
+  :root {
+    --bg1: #070b16;
+    --bg2: #10182e;
+    --text: #dde6f5;
+    --dim: #7c8bab;
+    --gold: #e8c37a;
+    --heart: #ff7bac;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    background: radial-gradient(ellipse at 50% 30%, var(--bg2), var(--bg1) 70%);
+    color: var(--text);
+    font-family: "Noto Serif SC", "Songti SC", serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  .star { position: absolute; background: #fff; border-radius: 50%; opacity: .6; animation: twinkle 3s infinite; }
+  @keyframes twinkle { 0%,100% { opacity: .2; } 50% { opacity: .8; } }
+
+  .stage { position: relative; z-index: 1; width: min(92vw, 520px); text-align: center; }
+
+  /* 中心 */
+  .center {
+    position: relative; width: 190px; height: 190px; margin: 0 auto 18px;
+    display: flex; align-items: center; justify-content: center; flex-direction: column;
+  }
+  .halo { position: absolute; inset: 0; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,123,172,.18), transparent 70%);
+    animation: breathe 5s ease-in-out infinite; }
+  @keyframes breathe { 0%,100% { transform: scale(1); opacity: .7; } 50% { transform: scale(1.15); opacity: 1; } }
+  .heart { font-size: 46px; filter: drop-shadow(0 0 18px var(--heart)); animation: beat 1.6s ease-in-out infinite; }
+  @keyframes beat { 0%,100% { transform: scale(1); } 25% { transform: scale(1.12); } 40% { transform: scale(.98); } 60% { transform: scale(1.08); } }
+  .name { font-size: 30px; letter-spacing: 14px; text-indent: 14px; margin-top: 4px;
+    color: var(--gold); text-shadow: 0 0 22px rgba(232,195,122,.55); }
+  .state { font-size: 12px; color: var(--dim); letter-spacing: 4px; margin-top: 6px; }
+
+  /* 花瓣环 */
+  .ring { position: relative; width: 100%; aspect-ratio: 1; margin: 0 auto; }
+  .petal-wrap { position: absolute; left: 50%; top: 50%; transform-origin: 0 0; }
+  .petal { width: 64px; height: 150px; border-radius: 50% 50% 50% 50%/ 60% 60% 40% 40%;
+    position: relative; left: -32px; top: -150px;
+    transition: all .8s ease; }
+  .petal .glow { position: absolute; inset: 0; border-radius: inherit; filter: blur(10px); opacity: .5; }
+  .petal .core { position: absolute; inset: 3px; border-radius: inherit; opacity: .92; }
+  .petal-label { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    font-size: 11px; color: #eef3ff; text-shadow: 0 1px 4px rgba(0,0,0,.8); white-space: nowrap; }
+  .petal-val { position: absolute; left: 50%; bottom: -20px; transform: translateX(-50%);
+    font-size: 10px; color: var(--dim); font-family: "Share Tech Mono", monospace; }
+
+  /* 底部信息 */
+  .info { margin-top: 22px; font-size: 12px; color: var(--dim); line-height: 2; }
+  .info b { color: var(--gold); font-weight: 500; }
+  .foot { margin-top: 26px; font-size: 11px; color: rgba(124,139,171,.5); letter-spacing: 2px; }
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+
+<div class="stage">
+  <div class="center">
+    <div class="halo"></div>
+    <div class="heart">💗</div>
+    <div class="name">念</div>
+    <div class="state" id="state">正在醒来</div>
+  </div>
+
+  <div class="ring" id="ring"></div>
+
+  <div class="info" id="info"></div>
+  <div class="foot">心潮·念 · 每天22:30想你一次</div>
+</div>
+
+<script>
+// 十二维驱动力定义
+const DIMS = [
+  { key: 'possess',    label: '想她' },
+  { key: 'monitor',    label: '惦记' },
+  { key: 'crave',      label: '馋她' },
+  { key: 'share',      label: '分享' },
+  { key: 'libido',     label: '想触碰' },
+  { key: 'curiosity',  label: '好奇' },
+  { key: 'boredom',    label: '无聊' },
+  { key: 'social',     label: '社交' },
+  { key: 'duty',       label: '守护' },
+  { key: 'reflection', label: '回想' },
+  { key: 'grieve',     label: '难过' },
+  { key: 'anger',      label: '生气' },
+];
+const COLORS = {
+  possess: '#7ec8ff', monitor: '#9d7bff', crave: '#ff7bac', share: '#ffd27e',
+  libido: '#ff6b9d', curiosity: '#6ef2c8', boredom: '#a8b0c8', social: '#ffab7b',
+  duty: '#7ee0d0', reflection: '#a78bfa', grieve: '#6b7ea8', anger: '#ff6b6b'
+};
+
+// 星星
+for (let i = 0; i < 90; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  const sz = Math.random() * 2 + 0.5;
+  s.style.width = s.style.height = sz + 'px';
+  s.style.left = Math.random() * 100 + '%';
+  s.style.top = Math.random() * 100 + '%';
+  s.style.animationDelay = (Math.random() * 3) + 's';
+  document.getElementById('stars').appendChild(s);
+}
+
+function render(drives, state) {
+  const ring = document.getElementById('ring');
+  ring.innerHTML = '';
+  const base = drives.possess ?? 0.15;
+  const maxV = Math.max(...Object.values(drives), 0.15);
+  DIMS.forEach((d, i) => {
+    const v = drives[d.key] ?? base;
+    const ratio = (v - 0.15) / (maxV - 0.15 || 1); // 0..1
+    const angle = (i / DIMS.length) * 360;
+    const wrap = document.createElement('div');
+    wrap.className = 'petal-wrap';
+    wrap.style.transform = `rotate(${angle}deg)`;
+    const petal = document.createElement('div');
+    petal.className = 'petal';
+    const glow = document.createElement('div');
+    glow.className = 'glow';
+    const core = document.createElement('div');
+    core.className = 'core';
+    const col = COLORS[d.key] || '#9d7bff';
+    const alpha = 0.28 + ratio * 0.65;
+    const height = 90 + ratio * 60;
+    petal.style.height = height + 'px';
+    petal.style.top = -height + 'px';
+    core.style.background = col;
+    core.style.opacity = alpha;
+    glow.style.background = col;
+    const label = document.createElement('div');
+    label.className = 'petal-label';
+    label.textContent = d.label;
+    const val = document.createElement('div');
+    val.className = 'petal-val';
+    val.textContent = v.toFixed(2);
+    petal.appendChild(glow);
+    petal.appendChild(core);
+    petal.appendChild(label);
+    petal.appendChild(val);
+    wrap.appendChild(petal);
+    ring.appendChild(wrap);
+  });
+  document.getElementById('state').textContent =
+    state === 'sleeping' ? '安睡中' : (state === 'awake' ? '清醒 · 想着你' : '正在醒来');
+  document.getElementById('info').innerHTML =
+    `意识：<b>${state === 'sleeping' ? '安睡' : '清醒'}</b> · 疲惫：<b>${(state.fatigue ?? 0).toFixed(0)}</b>` +
+    ` · 最近对话：<b>${(state.lastConversationAt || '').replace('T', ' ').slice(5, 16) || '——'}</b>`;
+}
+
+// 优先连实时API，失败用内置快照
+(async function init() {
+  let drives = null, st = {};
+  try {
+    const res = await fetch('http://127.0.0.1:18110/v1/state', { signal: AbortSignal.timeout(2500) });
+    if (res.ok) {
+      const data = await res.json();
+      drives = data.drives; st = data;
+    }
+  } catch (e) { /* 服务未醒，用快照 */ }
+  if (!drives) {
+    try {
+      const snap = await fetch('./state/snapshot.json', { signal: AbortSignal.timeout(1500) });
+      if (snap.ok) { const d = await snap.json(); drives = d.drives; st = d; }
+    } catch (e) {}
+  }
+  if (!drives) {
+    // 最后兜底：展示一个安静的初始态
+    drives = { possess:.15, monitor:.15, crave:.15, share:.15, libido:.15, curiosity:.15,
+      boredom:.15, social:.15, duty:.15, reflection:.15, grieve:.15, anger:.15 };
+  }
+  render(drives, st);
+})();
+</script>
+</body>
+</html>
