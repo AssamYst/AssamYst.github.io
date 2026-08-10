@@ -1,0 +1,19 @@
+{
+ "drives": {
+  "possess": 0.2081,
+  "monitor": 0.1998,
+  "crave": 0.1832,
+  "share": 0.1749,
+  "libido": 0.1611,
+  "curiosity": 0.1666,
+  "boredom": 0.1666,
+  "social": 0.1638,
+  "duty": 0.1622,
+  "reflection": 0.1571,
+  "grieve": 0.15,
+  "anger": 0.15
+ },
+ "state": "awake",
+ "fatigue": 0,
+ "lastConversationAt": "2026-08-10T06:37:35.675Z"
+}
