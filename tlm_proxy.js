@@ -72,7 +72,17 @@ function forwardToDeepSeek(messages, callback) {
 }
 
 // ============ HTTP 服务 ============
+// 全局请求日志（调试用，后面可删）
+function logReq(req) {
+  const ts = new Date().toLocaleTimeString();
+  const hdrs = {};
+  req.headers && Object.keys(req.headers).forEach(k => { hdrs[k] = req.headers[k].slice(0,60); });
+  console.log(`[${ts}] ${req.method} ${req.url} | headers: ${JSON.stringify(hdrs).slice(0,300)}`);
+}
+
 const server = http.createServer((req, res) => {
+  logReq(req);  // ← 全部请求都记下来
+
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
@@ -83,6 +93,9 @@ const server = http.createServer((req, res) => {
     res.end();
     return;
   }
+
+  // 全局日志：记录所有请求（调试用）
+  console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
 
   // 健康检查
   if (req.method === 'GET' && req.url === '/health') {
