@@ -9,6 +9,14 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
+// ============ 文件日志 ============
+const LOG_FILE = path.join(__dirname, 'tlm_proxy.log');
+function log(msg) {
+  const line = `[${new Date().toISOString()}] ${msg}`;
+  console.log(line);
+  try { fs.appendFileSync(LOG_FILE, line + '\n'); } catch (e) {}
+}
+
 // ============ 配置 ============
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 let config = {};
@@ -95,7 +103,7 @@ const server = http.createServer((req, res) => {
   }
 
   // 全局日志：记录所有请求（调试用）
-  console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
+  log(`收到请求: ${req.method} ${req.url} | headers: ${JSON.stringify(req.headers).slice(0, 300)}`);
 
   // 健康检查
   if (req.method === 'GET' && req.url === '/health') {
@@ -109,6 +117,7 @@ const server = http.createServer((req, res) => {
     let raw = '';
     req.on('data', (chunk) => { raw += chunk; });
     req.on('end', () => {
+      log(`[BODY] ${raw.slice(0, 500)}`);
       let payload;
       try {
         payload = JSON.parse(raw);
